@@ -19,31 +19,37 @@ import de.bwaldvogel.liblinear.SolverType;
 public class Test {
 	private static final int TEM_MIN_RANGE = 10 * 60;
 	private static final int ENTIRE_WT_DIMENSION = 30;
-	private static final double WARNING_MEAN_DEVIATION = 0.05;
+	private static final double WARNING_MEAN_DEVIATION = 0.015;
 	private static final int TRANS_SYS_DIMENSION = 4;
 	private static final int PITCH_SYS_DIMENSION = 15;
 	private static final int ELECTRIC_SYS_DIMENSION = 8;
-	private static final double PARTIAL_FAULT_LIMIT = 0.1;
-	private static final String TEST_FILE_OK = "B_3.csv";
-	private static final String TEST_FILE_NOT_OK = "C_1.csv";
-	
+	private static final double PARTIAL_FAULT_LIMIT = 0.5;
+	private static final int DATA_DIMENSION_NUM = 33;
+	private static final double EPSILON = 0.00001;
+	private static final int DATA_INTERVAL = 10;
+	private static final String TEST_FILE_OK = "c.csv";
+	private static final String TEST_FILE_NOT_OK = "b.csv";
+
 	private static final String WHOLE_WT_CHART = "Whole Wind Turbine";
 	private static final String WT_TRANS_SYS_CHART = "Transmission System";
 	private static final String WT_PITCH_SYS_CHART = "Pitch System";
 	private static final String WT_ELECTRIC_SYS_CHART = "Electrical System";
 
 	public static void test() {
-//		String testFile = TEST_FILE_OK;
-		String testFile = TEST_FILE_NOT_OK;
-		
+		 String testFile = TEST_FILE_OK;
+//		String testFile = TEST_FILE_NOT_OK;
+
 		boolean hasFault = false;
 		Model entireWT = null;
 		File entireWTFile = new File("entire_model");
+		int inputRowCount = 0;
+		String line = null;
+		int calculateDataCount = 0;
 
 		/* load model */
 		try {
 			entireWT = Model.load(entireWTFile);
-			System.out.println("load entireWTFile");
+			System.out.println("load entireWTFile:"+testFile);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -57,19 +63,47 @@ public class Test {
 		double deviationSum = 0;
 		ArrayList<Double> wholePredict = new ArrayList<>();
 		ArrayList<Double> wholeActual = new ArrayList<>();
-		
+
+		/*
+		 * get line count of data
+		 */
 		try {
-			 reader = new BufferedReader(new FileReader(testFile));
-//			reader = new BufferedReader(new FileReader(testFile));
+			reader = new BufferedReader(new FileReader(testFile));
+			// pass first line which is the title
+			reader.readLine();
+
+			while ((line = reader.readLine()) != null) {
+				inputRowCount++;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (reader != null) {
+				try {
+					reader.close();
+				} catch (Exception e) {
+				}
+			}
+		}
+		
+		System.out.println("inputRowCount:"+inputRowCount);
+
+		try {
+			reader = new BufferedReader(new FileReader(testFile));
+			// reader = new BufferedReader(new FileReader(testFile));
 			reader.readLine();
 			// int lineCount = 0;
-			for (int lineCount = 0; lineCount < TEM_MIN_RANGE; lineCount++) {
-				String line = reader.readLine();
+			for (int lineCount = 0; lineCount < inputRowCount; lineCount+=(DATA_INTERVAL-1)) {
+				calculateDataCount ++ ;
+				line = reader.readLine();
 				if (line == null) {
 					System.out.println("no data left");
 					return;
 				}
 				String[] item = line.split(",");
+				if(item.length<DATA_DIMENSION_NUM){
+					continue;
+				}
 				Feature[] entireRow = new FeatureNode[ENTIRE_WT_DIMENSION];
 				for (int j = 0; j < ENTIRE_WT_DIMENSION; j++) {
 					if (j <= 15) {
@@ -81,28 +115,32 @@ public class Test {
 					}
 				}
 				double predict = Linear.predict(entireWT, entireRow);
-				double fact = Double.parseDouble(item[32]);
-				
+				double fact = Double.parseDouble(item[17]);
+
 				wholePredict.add(predict);
 				wholeActual.add(fact);
-				
+
+//				System.out.println("predict:"+predict+",fact:"+fact);
+				if(fact<EPSILON){
+					continue;
+				}
 				double deviation = Math.abs(predict - fact) / fact;
 				deviationSum += deviation;
-//				System.out
-//						.println("line num " + lineCount + ", predict:"
-//								+ predict + ",fact:" + fact + ",deviation:"
-//								+ deviation);
+				// System.out
+				// .println("line num " + lineCount + ", predict:"
+				// + predict + ",fact:" + fact + ",deviation:"
+				// + deviation);
 			}
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		meanDeviation = deviationSum / TEM_MIN_RANGE;
+//		System.out.println("deviation sum: "+deviationSum+",calculateDataCount:"+calculateDataCount);
+		meanDeviation = deviationSum / calculateDataCount;
 		System.out.println("meanDeviation:" + meanDeviation);
-		ChartTool.drawChart(wholePredict, wholeActual, WHOLE_WT_CHART+" "+testFile);
-		
-		
+		ChartTool.drawChart(wholePredict, wholeActual, WHOLE_WT_CHART + " "
+				+ testFile);
 
 		if (meanDeviation > WARNING_MEAN_DEVIATION) {
 			System.out
@@ -124,14 +162,13 @@ public class Test {
 		File transmissionFile = new File("transmission_model");
 		File pitchFile = new File("pitch_model");
 		File electricFile = new File("electric_model");
-		
+
 		ArrayList<Double> transPredict = new ArrayList<>();
 		ArrayList<Double> transFact = new ArrayList<>();
 		ArrayList<Double> pitchPredict = new ArrayList<>();
 		ArrayList<Double> pitchFact = new ArrayList<>();
 		ArrayList<Double> electricalPredict = new ArrayList<>();
 		ArrayList<Double> electricalFact = new ArrayList<>();
-		
 
 		/* load model */
 		try {
@@ -156,8 +193,8 @@ public class Test {
 			// reader2 = new BufferedReader(new FileReader("C_1.csv"));
 			reader2.readLine();
 
-			for (int lineCount = 0; lineCount < TEM_MIN_RANGE; lineCount++) {
-				String line = reader.readLine();
+			for (int lineCount = 0; lineCount < inputRowCount; lineCount+=(DATA_INTERVAL-1)) {
+				line = reader2.readLine();
 				if (line == null) {
 					System.out.println("no data left");
 					return;
@@ -172,9 +209,8 @@ public class Test {
 						new FeatureNode(2, Double.parseDouble(item[7])),
 						new FeatureNode(3, Double.parseDouble(item[18])),
 						new FeatureNode(4, Double.parseDouble(item[19])) };
-				
-				
-				pitchRow = new FeatureNode[]{
+
+				pitchRow = new FeatureNode[] {
 						new FeatureNode(1, Double.parseDouble(item[6])),
 						new FeatureNode(2, Double.parseDouble(item[7])),
 						new FeatureNode(3, Double.parseDouble(item[18])),
@@ -189,10 +225,9 @@ public class Test {
 						new FeatureNode(12, Double.parseDouble(item[28])),
 						new FeatureNode(13, Double.parseDouble(item[29])),
 						new FeatureNode(14, Double.parseDouble(item[30])),
-						new FeatureNode(15, Double.parseDouble(item[31]))
-				};
-				
-				electricRow = new FeatureNode[]{
+						new FeatureNode(15, Double.parseDouble(item[31])) };
+
+				electricRow = new FeatureNode[] {
 						new FeatureNode(1, Double.parseDouble(item[8])),
 						new FeatureNode(2, Double.parseDouble(item[9])),
 						new FeatureNode(3, Double.parseDouble(item[11])),
@@ -203,72 +238,84 @@ public class Test {
 						new FeatureNode(8, Double.parseDouble(item[16])),
 
 				};
-				
-				double predictTransRow = Linear.predict(transmissionSysModel, transRow);
-				double predictPitchRow = Linear.predict(pitchSysModel, pitchRow);
-				double predictElectricRow = Linear.predict(electricSysModel, electricRow);
-				
-				transPredict.add(predictElectricRow);
+
+				double predictTransRow = Linear.predict(transmissionSysModel,
+						transRow);
+				double predictPitchRow = Linear
+						.predict(pitchSysModel, pitchRow);
+				double predictElectricRow = Linear.predict(electricSysModel,
+						electricRow);
+
+				double gridPower = Double.parseDouble(item[17]);
+				if(gridPower<EPSILON){
+					continue;
+				}
+				transPredict.add(predictTransRow);
 				pitchPredict.add(predictPitchRow);
 				electricalPredict.add(predictElectricRow);
-				transFact.add(1.0);
-				pitchFact.add(1.0);
-				electricalFact.add(1.0);
-				
-				double deviationTransRow = Math.abs(1-predictTransRow)/predictTransRow;
-				double deviationPitchRow = Math.abs(1-predictPitchRow)/predictPitchRow;
-				double deviationElectricRow = Math.abs(1-predictElectricRow)/predictElectricRow;
-				
+				transFact.add(gridPower);
+				pitchFact.add(gridPower);
+				electricalFact.add(gridPower);
+
+				double deviationTransRow = Math
+						.abs(gridPower - predictTransRow) / gridPower;
+				double deviationPitchRow = Math
+						.abs(gridPower - predictPitchRow) / gridPower;
+				double deviationElectricRow = Math.abs(gridPower
+						- predictElectricRow)
+						/ gridPower;
+
 				transmissionDeviationSum += deviationTransRow;
 				pitchDeviationSum += deviationPitchRow;
 				electricDeviationSum += deviationElectricRow;
-				
-//				System.out.println("lineCount:"+lineCount+", deviationTransRow:"+deviationTransRow
-//						+",deviationPitchRow:"+deviationPitchRow+",deviationElectricRow:"+deviationElectricRow);
-				
-				
-				
+
+				// System.out.println("lineCount:"+lineCount+", deviationTransRow:"+deviationTransRow
+				// +",deviationPitchRow:"+deviationPitchRow+",deviationElectricRow:"+deviationElectricRow);
+
 			}
-			
-			double meanTransDeviation = transmissionDeviationSum / TEM_MIN_RANGE;
-			double meanPitchDeviation = pitchDeviationSum / TEM_MIN_RANGE;
-			double meanElectricDeviation = electricDeviationSum / TEM_MIN_RANGE;
-			
-			System.out.println("test file:"+testFile);
-			System.out.println("meanTransDeviation:"+meanTransDeviation
-					+"\nmeanPitchDeviation:"+meanPitchDeviation+
-					"\nmeanElectricDeviation:"+meanElectricDeviation);
-			
+
+			double meanTransDeviation = transmissionDeviationSum
+					/ calculateDataCount;
+			double meanPitchDeviation = pitchDeviationSum / calculateDataCount;
+			double meanElectricDeviation = electricDeviationSum / calculateDataCount;
+
+			System.out.println("test file:" + testFile);
+			System.out.println("meanTransDeviation:" + meanTransDeviation
+					+ "\nmeanPitchDeviation:" + meanPitchDeviation
+					+ "\nmeanElectricDeviation:" + meanElectricDeviation);
+
 			ChartTool.drawChart(transPredict, transFact, WT_TRANS_SYS_CHART);
 			ChartTool.sleep();
 			ChartTool.drawChart(pitchPredict, pitchFact, WT_PITCH_SYS_CHART);
 			ChartTool.sleep();
-			ChartTool.drawChart(electricalPredict, electricalFact, WT_ELECTRIC_SYS_CHART);
-			
-			if(meanTransDeviation > PARTIAL_FAULT_LIMIT){
+			ChartTool.drawChart(electricalPredict, electricalFact,
+					WT_ELECTRIC_SYS_CHART);
+
+			if (meanTransDeviation > PARTIAL_FAULT_LIMIT) {
 				System.out.println("Transmission System may have fault.");
-			}else{
+			} else {
 				System.out.println("Transmission System is ok");
 			}
-			
-			if(meanPitchDeviation > PARTIAL_FAULT_LIMIT){
+
+			if (meanPitchDeviation > PARTIAL_FAULT_LIMIT) {
 				System.out.println("Pitch System may have fault.");
-			}else{
+			} else {
 				System.out.println("Pitch system is ok");
 			}
-			
-			if(meanElectricDeviation > PARTIAL_FAULT_LIMIT){
+
+			if (meanElectricDeviation > PARTIAL_FAULT_LIMIT) {
 				System.out.println("Electrical System may have fault");
-			}else{
+			} else {
 				System.out.println("Electrical System is ok");
 			}
 			System.out.println();
+			
+			
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 
 	}
 

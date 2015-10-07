@@ -17,12 +17,12 @@ import de.bwaldvogel.liblinear.Problem;
 import de.bwaldvogel.liblinear.SolverType;
 
 public class Train {
-	private static final int DATA_INTERVAL = 30;
+	private static final int DATA_INTERVAL = 10;
 	private static final int ENTIRE_WT_DIMENSION = 30;
 	private static final int TRANS_SYS_DIMENSION = 4;
 	private static final int PITCH_SYS_DIMENSION = 15;
 	private static final int ELECTRIC_SYS_DIMENSION = 8;
-	private static final int LINES_TO_JUMP = 29;
+	private static final int LINES_TO_JUMP = DATA_INTERVAL-1;
 
 	public static void trainModel() {
 
@@ -184,9 +184,9 @@ public class Train {
 				electricSys_X[count] = electricSys_ROW;
 
 				entireWT_Y[count] = Double.parseDouble(item[17]);
-				transmissionSys_Y[count] = 1;
-				pitchSys_Y[count] = 1;
-				electricSys_Y[count] = 1;
+				transmissionSys_Y[count] = entireWT_Y[count];
+				pitchSys_Y[count] = entireWT_Y[count];
+				electricSys_Y[count] = entireWT_Y[count];
 
 				/* jump 29 lines */
 				for (int i = 0; i < LINES_TO_JUMP; i++) {
