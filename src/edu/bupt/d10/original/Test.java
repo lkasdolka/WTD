@@ -1,4 +1,4 @@
-package edu.bupt.d10;
+package edu.bupt.d10.original;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -27,6 +27,7 @@ public class Test {
 	private static final int DATA_DIMENSION_NUM = 33;
 	private static final double EPSILON = 0.00001;
 	private static final int DATA_INTERVAL = 10;
+	private static final int DRAWING_IMAGE_POINTS_NUMBER = 500;
 	private static final String TEST_FILE_OK = "c.csv";
 	private static final String TEST_FILE_NOT_OK = "b.csv";
 
@@ -36,8 +37,8 @@ public class Test {
 	private static final String WT_ELECTRIC_SYS_CHART = "Electrical System";
 
 	public static void test() {
-		 String testFile = TEST_FILE_OK;
-//		String testFile = TEST_FILE_NOT_OK;
+//		 String testFile = TEST_FILE_OK;
+		String testFile = TEST_FILE_NOT_OK;
 
 		boolean hasFault = false;
 		Model entireWT = null;
@@ -139,7 +140,8 @@ public class Test {
 //		System.out.println("deviation sum: "+deviationSum+",calculateDataCount:"+calculateDataCount);
 		meanDeviation = deviationSum / calculateDataCount;
 		System.out.println("meanDeviation:" + meanDeviation);
-		ChartTool.drawChart(wholePredict, wholeActual, WHOLE_WT_CHART + " "
+		ChartTool.drawChart(wholePredict.subList(0, DRAWING_IMAGE_POINTS_NUMBER), 
+				wholeActual.subList(0, DRAWING_IMAGE_POINTS_NUMBER), WHOLE_WT_CHART + " "
 				+ testFile);
 
 		if (meanDeviation > WARNING_MEAN_DEVIATION) {
@@ -284,11 +286,14 @@ public class Test {
 					+ "\nmeanPitchDeviation:" + meanPitchDeviation
 					+ "\nmeanElectricDeviation:" + meanElectricDeviation);
 
-			ChartTool.drawChart(transPredict, transFact, WT_TRANS_SYS_CHART);
+			ChartTool.drawChart(transPredict.subList(0, DRAWING_IMAGE_POINTS_NUMBER),
+					transFact.subList(0, DRAWING_IMAGE_POINTS_NUMBER), WT_TRANS_SYS_CHART);
 			ChartTool.sleep();
-			ChartTool.drawChart(pitchPredict, pitchFact, WT_PITCH_SYS_CHART);
+			ChartTool.drawChart(pitchPredict.subList(0, DRAWING_IMAGE_POINTS_NUMBER), 
+					pitchFact.subList(0, DRAWING_IMAGE_POINTS_NUMBER), WT_PITCH_SYS_CHART);
 			ChartTool.sleep();
-			ChartTool.drawChart(electricalPredict, electricalFact,
+			ChartTool.drawChart(electricalPredict.subList(0, DRAWING_IMAGE_POINTS_NUMBER),
+					electricalFact.subList(0, DRAWING_IMAGE_POINTS_NUMBER),
 					WT_ELECTRIC_SYS_CHART);
 
 			if (meanTransDeviation > PARTIAL_FAULT_LIMIT) {

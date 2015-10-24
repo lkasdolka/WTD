@@ -1,4 +1,4 @@
-package edu.bupt.d10;
+package edu.bupt.d10.original;
 
 import java.io.BufferedReader;
 import java.io.File;
